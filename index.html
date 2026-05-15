@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Capillary Flow Calculator</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand-block">
+        <div class="title-row">
+          <h1>Capillary Flow Calculator Neo</h1>
+          <span class="info-trigger" tabindex="0" aria-label="About Capillary Flow Calculator Neo">i</span>
+          <div class="info-popover" role="tooltip">
+            <p>Capillary Flow Calculator Neo is a rewritten JavaScript/browser version of the original VB6 workflow. This tool runs on Windows, macOS, and Linux through a web browser while keeping the core capillary flow calculation features.</p>
+            <p>Modified for easier use for nanoflow-LC people. New features include system pressure calculation for summing pressure contributions from all LC tubing/components, as well as gradient pressure calculation that considers solvent B composition changes along the column during gradient runs.</p>
+            <p>This tool is intended to provide practical calculation references for LC users and help with LC troubleshooting. Our goal is no leaking, no clogging, no air bubbles.</p>
+          </div>
+        </div>
+        <p>Browser version adapted by Siqi from selected workflows of the PNNL VB6 Molecular Weight Calculator.</p>
+      </div>
+      <nav class="tabs" aria-label="Calculator modules">
+        <button class="tab-button active" data-tab="capillary" type="button">Capillary Flow Calculator</button>
+        <button class="tab-button" data-tab="peptide" type="button">Peptide MW</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="tab-panel active" id="capillary-panel">
+        <div class="workspace two-column">
+          <section class="panel primary-panel">
+            <div class="panel-title">
+              <span>Flow Inputs</span>
+              <small>pressure, geometry, solvent, and flow</small>
+            </div>
+            <div class="form-grid">
+              <label>
+                Capillary Type
+                <select id="capType">
+                  <option>Open tubular</option>
+                  <option selected>Separation Column</option>
+                  <option>Trap Column</option>
+                </select>
+              </label>
+              <label>
+                Computation Type
+                <select id="computeType">
+                  <option>Find Back Pressure</option>
+                  <option>Find Column Length</option>
+                  <option>Find Inner Diameter</option>
+                  <option selected>Find Volumetric Flow rate</option>
+                  <option>Find Flow Rate using Dead Time</option>
+                  <option>System Pressure</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="input-table" id="capillaryInputs">
+              <div class="unit-row" data-row="pressure">
+                <label for="pressure">Back Pressure</label>
+                <input id="pressure" value="206.8427" inputmode="decimal">
+                <select id="pressureUnit"></select>
+              </div>
+              <div class="unit-row" data-row="length">
+                <label for="length">Column Length</label>
+                <input id="length" value="15" inputmode="decimal">
+                <select id="lengthUnit"></select>
+              </div>
+              <div class="unit-row" data-row="id">
+                <label for="innerDiameter">Column Inner Diameter</label>
+                <input id="innerDiameter" value="75" inputmode="decimal">
+                <select id="idUnit"></select>
+              </div>
+              <div class="unit-row" data-row="viscosity">
+                <label for="viscosity">Solvent Viscosity</label>
+                <input id="viscosity" value="0.0089" inputmode="decimal">
+                <select id="viscosityUnit"></select>
+              </div>
+              <div class="unit-row" data-row="particle">
+                <label for="particle">Particle Diameter</label>
+                <input id="particle" value="1.7" inputmode="decimal">
+                <select id="particleUnit"></select>
+              </div>
+              <div class="unit-row" data-row="porosity">
+                <label for="porosity">Interparticle Porosity</label>
+                <input id="porosity" value="0.42" inputmode="decimal">
+                <span></span>
+              </div>
+              <div class="unit-row" data-row="flow">
+                <label for="flow">Volumetric Flow Rate</label>
+                <input id="flow" value="200" inputmode="decimal">
+                <select id="flowUnit"></select>
+              </div>
+              <div class="unit-row" data-row="deadTime">
+                <label for="deadTime">Column Dead Time</label>
+                <input id="deadTime" value="40.5374" inputmode="decimal">
+                <select id="deadTimeUnit"></select>
+              </div>
+            </div>
+
+            <div class="system-components" id="systemPanel">
+              <div class="section-head">
+                <div>
+                  <h2>System Pressure Components</h2>
+                  <p>Serial tubing, trap, transfer, and column segments</p>
+                </div>
+                <button id="addSystemRow" type="button">Add Row</button>
+              </div>
+              <div class="table-wrap">
+                <table class="system-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Length cm</th>
+                      <th>I.D. um</th>
+                      <th>Particle um</th>
+                      <th>Porosity</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="systemRows"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <button id="calculateCapillary" type="button">Calculate</button>
+              <button id="resetCapillary" type="button">Reset</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-title">
+              <span>Computed Values</span>
+              <small>updates automatically as values change</small>
+            </div>
+            <div class="result-grid summary-grid">
+              <div class="unit-row result-card emphasis">
+                <label for="pressureResultUnit">Back Pressure</label>
+                <output id="pressureOut" class="pressure-output">1</output>
+                <select id="pressureResultUnit"></select>
+              </div>
+              <div class="unit-row result-card">
+                <label for="flowResultUnit">Volumetric Flow Rate</label>
+                <output id="flowOut">1</output>
+                <select id="flowResultUnit"></select>
+              </div>
+              <div class="unit-row result-card">
+                <label for="deadResultUnit">Column Dead Time</label>
+                <output id="deadOut">1</output>
+                <select id="deadResultUnit"></select>
+              </div>
+              <div class="unit-row result-card">
+                <label for="linearUnit">Linear Velocity</label>
+                <output id="linearOut">1</output>
+                <select id="linearUnit"></select>
+              </div>
+              <div class="unit-row result-card">
+                <label for="volumeUnit">Column Volume</label>
+                <output id="volumeOut">1</output>
+                <select id="volumeUnit"></select>
+              </div>
+              <div class="unit-row result-card">
+                <label for="lengthResultUnit">Column Length</label>
+                <output id="lengthOut">1</output>
+                <select id="lengthResultUnit"></select>
+              </div>
+              <div class="unit-row result-card">
+                <label for="idResultUnit">Column I.D.</label>
+                <output id="idOut">1</output>
+                <select id="idResultUnit"></select>
+              </div>
+            </div>
+            <pre id="systemDetail">System Pressure results appear here when selected.</pre>
+            <output id="capillaryStatus" class="status-line">Ready</output>
+          </section>
+        </div>
+
+        <div class="workspace lower">
+          <section class="panel">
+            <div class="panel-title">
+              <span>MeCN/Water Viscosity</span>
+              <small>estimate solvent viscosity from composition and temperature</small>
+            </div>
+            <div class="viscosity-layout">
+              <div>
+                <div class="input-table compact">
+                  <div class="unit-row">
+                    <label for="mecn">MeCN</label>
+                    <input id="mecn" value="1" inputmode="decimal">
+                    <span>%</span>
+                  </div>
+                  <div class="unit-row">
+                    <label for="temperature">Temp</label>
+                    <input id="temperature" value="20" inputmode="decimal">
+                    <span>C</span>
+                  </div>
+                </div>
+                <button id="useViscosity" type="button">Use Viscosity</button>
+              </div>
+              <div class="chart-card">
+                <canvas id="viscosityChart" width="720" height="260" aria-label="MeCN percent versus viscosity curve"></canvas>
+              </div>
+            </div>
+
+            <h2 class="subhead">Gradient vs Pressure</h2>
+            <div class="gradient-layout">
+              <div>
+                <div class="section-head gradient-head">
+                  <p>Linear MeCN gradient profile</p>
+                  <div class="mini-actions">
+                    <button id="addGradientRow" type="button">Add Row</button>
+                    <button id="removeGradientRow" type="button">Remove Row</button>
+                  </div>
+                </div>
+                <div class="unit-row gradient-dwell-row">
+                  <label for="dwellTime">Dwell time</label>
+                  <input id="dwellTime" value="0" inputmode="decimal">
+                  <span>min</span>
+                </div>
+                <div class="table-wrap gradient-table-wrap">
+                  <table class="gradient-table">
+                    <thead>
+                      <tr>
+                        <th>Time (min)</th>
+                        <th>MeCN %</th>
+                      </tr>
+                    </thead>
+                    <tbody id="gradientRows"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="chart-card">
+                <canvas id="gradientPressureChart" width="720" height="280" aria-label="Gradient time versus pressure curve"></canvas>
+                <div id="gradientTooltip" class="chart-tooltip hidden">0, 0</div>
+              </div>
+            </div>
+
+            <h2 class="subhead">Mass Rate</h2>
+            <div class="input-table">
+              <div class="unit-row">
+                <label for="concentration">Sample Concentration</label>
+                <input id="concentration" value="1" inputmode="decimal">
+                <select id="concentrationUnit"></select>
+              </div>
+              <div class="unit-row">
+                <label for="injectionTime">Injection Time</label>
+                <input id="injectionTime" value="5" inputmode="decimal">
+                <select id="injectionUnit"></select>
+              </div>
+              <div class="unit-row">
+                <label for="massFlowUnit">Mass Flow Rate</label>
+                <output id="massFlowOut">1</output>
+                <select id="massFlowUnit"></select>
+              </div>
+              <div class="unit-row">
+                <label for="injectedUnit">Moles Injected</label>
+                <output id="injectedOut">1</output>
+                <select id="injectedUnit"></select>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="peptide-panel">
+        <div class="workspace two-column">
+          <section class="panel">
+            <div class="panel-title">
+              <span>Sequence</span>
+              <small>one-letter or three-letter peptide notation</small>
+            </div>
+            <div class="field-row wide">
+              <label for="sequence">Sequence</label>
+              <input id="sequence" value="PEPTIDE" autocomplete="off">
+            </div>
+            <div class="form-grid">
+              <label>
+                Notation
+                <select id="notation">
+                  <option>1-letter</option>
+                  <option>3-letter</option>
+                </select>
+              </label>
+              <label>
+                N-Terminus
+                <select id="nTerm"></select>
+              </label>
+              <label>
+                C-Terminus
+                <select id="cTerm"></select>
+              </label>
+              <label class="check-line">
+                <input id="stripFlanking" type="checkbox" checked>
+                Strip flanking residues
+              </label>
+              <label>
+                Digits
+                <select id="peptideDigits">
+                  <option>4</option>
+                  <option>5</option>
+                  <option selected>6</option>
+                  <option>7</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-title">
+              <span>Mass Information</span>
+              <small>monoisotopic residue formulas</small>
+            </div>
+            <div class="metric-grid peptide-metrics">
+              <output id="mwOut">MW =</output>
+              <output id="mhOut">[M+H]1+ =</output>
+              <output id="gravyOut">GRAVY =</output>
+              <output id="peptideStatus">Ready</output>
+            </div>
+          </section>
+        </div>
+
+        <div class="workspace two-column lower">
+          <section class="panel">
+            <div class="panel-title">
+              <span>Residues</span>
+              <small>parsed sequence and per-residue mass</small>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Seq.</th>
+                    <th>Mods</th>
+                    <th>Mass</th>
+                  </tr>
+                </thead>
+                <tbody id="residueRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-title">
+              <span>Modification Symbols</span>
+              <small>added mass by symbol</small>
+            </div>
+            <div id="modList" class="symbol-list"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
