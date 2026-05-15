@@ -11,6 +11,7 @@ packaging.
 - System pressure summation
 - Gradient pressure simulation
 - No Python or local installation required
+- Fast peptide GRAVY Score calculation
 
 
 ## Authorship and Attribution
